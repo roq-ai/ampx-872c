@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["clientExtensions", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions      = [pgcrypto]
+}
+
+model car_owner {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String             @db.Uuid
+  car_model        String             @db.VarChar(255)
+  car_make         String             @db.VarChar(255)
+  car_year         Int
+  license_plate    String             @db.VarChar(20)
+  battery_capacity Int
+  created_at       DateTime           @default(now()) @db.Timestamp(6)
+  updated_at       DateTime           @default(now()) @db.Timestamp(6)
+  user             user               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  charging_request charging_request[]
+}
+
+model charging_request {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  car_owner_id       String             @db.Uuid
+  service_vehicle_id String             @db.Uuid
+  request_time       DateTime           @db.Timestamp(6)
+  location           String             @db.VarChar(255)
+  status             String             @db.VarChar(20)
+  charge_level       Int
+  created_at         DateTime           @default(now()) @db.Timestamp(6)
+  updated_at         DateTime           @default(now()) @db.Timestamp(6)
+  car_owner          car_owner          @relation(fields: [car_owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  service_vehicle    service_vehicle    @relation(fields: [service_vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  charging_session   charging_session[]
+}
+
+model charging_session {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  charging_request_id String           @db.Uuid
+  start_time          DateTime         @db.Timestamp(6)
+  end_time            DateTime?        @db.Timestamp(6)
+  charge_provided     Int
+  session_status      String           @db.VarChar(20)
+  service_vehicle_id  String           @db.Uuid
+  created_at          DateTime         @default(now()) @db.Timestamp(6)
+  updated_at          DateTime         @default(now()) @db.Timestamp(6)
+  charging_request    charging_request @relation(fields: [charging_request_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  service_vehicle     service_vehicle  @relation(fields: [service_vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model provider {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  description     String?           @db.VarChar(255)
+  address         String?           @db.VarChar(255)
+  rating          Int?
+  service_area    String?           @db.VarChar(255)
+  name            String            @db.VarChar(255)
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @default(now()) @db.Timestamp(6)
+  user_id         String            @db.Uuid
+  tenant_id       String            @db.VarChar(255)
+  user            user              @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  service_vehicle service_vehicle[]
+}
+
+model service_vehicle {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_id      String             @db.Uuid
+  vehicle_model    String             @db.VarChar(255)
+  vehicle_make     String             @db.VarChar(255)
+  vehicle_year     Int
+  license_plate    String             @db.VarChar(20)
+  battery_capacity Int
+  created_at       DateTime           @default(now()) @db.Timestamp(6)
+  updated_at       DateTime           @default(now()) @db.Timestamp(6)
+  charging_request charging_request[]
+  charging_session charging_session[]
+  provider         provider           @relation(fields: [provider_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model user {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String      @unique @db.VarChar(255)
+  firstName   String?     @db.VarChar(255)
+  lastName    String?     @db.VarChar(255)
+  roq_user_id String      @db.VarChar(255)
+  tenant_id   String      @db.VarChar(255)
+  created_at  DateTime    @default(now()) @db.Timestamp(6)
+  updated_at  DateTime    @default(now()) @db.Timestamp(6)
+  car_owner   car_owner[]
+  provider    provider[]
+}
